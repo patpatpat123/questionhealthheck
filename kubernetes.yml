@@ -1,0 +1,65 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: question
+  labels:
+    app: question
+spec:
+  replicas: 1
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 1
+  selector:
+    matchLabels:
+      app: question
+      sdr.appname: question
+  template:
+    metadata:
+      labels:
+        app: question
+        sdr.appname: question
+    spec:
+      priorityClassName: p2
+      containers:
+        - name: question
+          image: your.docker.com/question:test
+          imagePullPolicy: Always
+          resources:
+            requests:
+              cpu: "2"
+              memory: 2Gi
+            limits:
+              cpu: "3"
+              memory: 3Gi
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8888
+            periodSeconds: 60
+          readinessProbe:
+            httpGet:
+              path: /health/readiness
+              port: 8888
+            periodSeconds: 60
+          ports:
+            - containerPort: 8888
+              name: exposedport
+              protocol: TCP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: question
+spec:
+  ports:
+    - name: exposedport
+      port: 8888
+      protocol: TCP
+      targetPort: exposedport
+  selector:
+    app: question
+  type: LoadBalancer
+
